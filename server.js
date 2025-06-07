@@ -173,8 +173,8 @@ await page.evaluate((n) => {
     document.querySelector('input#identifierId').value = n
     document.querySelector('#identifierNext').click()
 }, number)
-await page.waitForTimeout(1000)
-console.log('[GMAIL] Current URL after clicking Next:', page.url())
+await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {})
+console.log('[GMAIL] Current URL after clicking Next:', await page.url())
         await page.waitForSelector('input[type="password"]', { timeout: 10000 })
         await delay(1000)
         await page.evaluate((pw) => {
